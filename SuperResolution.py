@@ -1,16 +1,10 @@
 import tensorflow as tf
 import numpy as np
-from Image import Image
 
-# Hyper params
-learning_rate = 0.1
-epochs = 1
-batch_size = 1
-dataset_size = 4
+# Params for each layers
 large = 32
 small = 16
 
-# Params for each layers
 n_filters_conv1 = large
 n_channels_conv1 = 1
 filter_size_conv1 = 5
@@ -86,12 +80,12 @@ def Expanding(conv3):
 def Deconvolution(conv4, Y_train, size_y):
     print('5th layer')
     weight_conv5 = weight_variable([filter_size_conv5, filter_size_conv5, n_filters_conv5, n_channels_conv5])
-    bias_conv5 = bias_variable(np.array([batch_size, 1, size_y, 1]))
+    bias_conv5 = bias_variable(np.array([1, 1, size_y, 1]))
     # bias_conv5 = bias_variable(np.asarray(Y_train.get_shape().as_list()))
     Y_predict = tf.nn.relu(deconv2d(conv4, weight_conv5, tf.shape(Y_train)) + bias_conv5)
     return Y_predict
 
-def Training(X_images, Y_images, is_print_loss):
+def Training(X_images, Y_images, is_print_loss, learning_rate):
 
     # size_x = np.shape(X_images)[0]
     size_y = np.shape(Y_images)[0]
@@ -122,24 +116,6 @@ def Training(X_images, Y_images, is_print_loss):
 
     sess.close()
 
-
-X_grey = Image.LoadTrainingGreyImage(2, './Training/X2_grey/')
-Y_grey = Image.LoadTrainingGreyImage(2, './Training/HR_grey/')
-
-X_grey_flatten = Image.Flatten(X_grey)
-Y_grey_flatten = Image.Flatten(Y_grey)
-
-X_final = Image.Normalize(X_grey_flatten)
-Y_final = Image.Normalize(Y_grey_flatten)
-
-
-for i in range(epochs):
-
-    for j in range(len(X_final)):
-        print(X_final[j].shape)
-        print(Y_final[j].shape)
-        Training([X_final[j]], [Y_final[j]], True)
-        break
 
 
 
