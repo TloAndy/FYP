@@ -1,4 +1,4 @@
-# FY
+# FYP
 
 source ~/tensorflow/bin/activate
 
