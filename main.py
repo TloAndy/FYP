@@ -7,20 +7,28 @@ import SuperResolution
 learning_rate = 0.1
 epochs = 1
 batch_size = 1
-dataset_size = 4
+dataset_size = 1
 
-X_grey = Image.LoadTrainingGreyImage(2, './Training/X2_grey/')
-Y_grey = Image.LoadTrainingGreyImage(2, './Training/HR_grey/')
+def Normalize_1D(images):
+    images_flatten = Images.Flatten(images)
+    return Image.Normalize(images_flatten)
 
-X_grey_flatten = Image.Flatten(X_grey)
-Y_grey_flatten = Image.Flatten(Y_grey)
+def Normalize_2D(images):
+    return Image.Normalize(images)
 
-X_final = Image.Normalize(X_grey_flatten)
-Y_final = Image.Normalize(Y_grey_flatten)
+X_grey = Image.LoadTrainingGreyImage(dataset_size, './Training/X2_grey/')
+Y_grey = Image.LoadTrainingGreyImage(dataset_size, './Training/HR_grey/')
 
+X_norm = Normalize_2D(X_grey)
+Y_norm = Normalize_2D(Y_grey)
+
+# print(np.shape(X_norm))
+# print(np.shape(Y_norm))
+
+# X_norn = Normalize_1D(X_grey)
+# Y_norm = Normalize_1D(Y_grey)
 
 for i in range(epochs):
 
-    for j in range(len(X_final)):
-        SuperResolution.Training([X_final[j]], [Y_final[j]], True, learning_rate)
-        break
+    for j in range(dataset_size):
+        SuperResolution.Training([X_norm[j]], [Y_norm[j]], learning_rate)

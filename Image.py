@@ -6,8 +6,6 @@ from sklearn import preprocessing
 
 class Image:
 
-	# Input: [image_i_h, image_i_w] for i in range(images_count)
-	# Output: [n_images, image_h * images_w(ragged)]
 	@staticmethod
 	def Flatten(images):
 		images_flatten = []
@@ -17,17 +15,15 @@ class Image:
 
 		return images_flatten
 
-
-	# Input: [n_images, image_h * images_w(ragged)]
-	# Normalize respect to each sample and add 1 dim
 	@staticmethod
 	def Normalize(images):
-		# images_normalize = preprocessing.normalize(images, norm='l1', axis=1)
 		results = []
 
 		for image in images:
 			image_norm = image / np.linalg.norm(image)
-			image_3dims = image_norm.reshape(1, np.shape(image_norm)[0], 1)
+			# print(np.shape(image_norm))
+			image_3dims = image_norm.reshape(np.shape(image_norm)[0], np.shape(image_norm)[1], 1)
+			# print(np.shape(image_3dims))
 			results.append(image_3dims)
 
 		return results

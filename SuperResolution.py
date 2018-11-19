@@ -37,7 +37,7 @@ def bias_variable(shape):
 def conv2d(input, filter, stride = [1, 1, 1, 1], padding_type = 'SAME'):
     return tf.nn.conv2d(input, filter, strides=stride, padding=padding_type)
 
-def deconv2d(input, filter, output_shape, stride = [1, 4, 4, 1], padding_type = 'SAME'):
+def deconv2d(input, filter, output_shape, stride = [1, 2, 2, 1], padding_type = 'SAME'):
     return tf.nn.conv2d_transpose(input, filter, output_shape=output_shape, strides=stride, padding=padding_type)
 
 # Functions for each layer
@@ -77,20 +77,20 @@ def Expanding(conv3):
     conv4 = tf.nn.relu(conv2d(conv3, weight_conv4) + bias_conv4)
     return conv4
 
-def Deconvolution(conv4, Y_train, size_y):
+def Deconvolution(conv4, Y_train, y_height, y_width):
     print('5th layer')
     weight_conv5 = weight_variable([filter_size_conv5, filter_size_conv5, n_filters_conv5, n_channels_conv5])
-    bias_conv5 = bias_variable(np.array([1, 1, size_y, 1]))
+    bias_conv5 = bias_variable(np.array([1, y_height, y_width, 1]))
     # bias_conv5 = bias_variable(np.asarray(Y_train.get_shape().as_list()))
     Y_predict = tf.nn.relu(deconv2d(conv4, weight_conv5, tf.shape(Y_train)) + bias_conv5)
     return Y_predict
 
-def Training(X_images, Y_images, is_print_loss, learning_rate):
+def Training(X_images, Y_images, learning_rate):
 
-    # size_x = np.shape(X_images)[0]
-    size_y = np.shape(Y_images)[0]
-    # tmp = np.shape(Y_images)[1]
-
+    y_height = np.shape(Y_images)[1]
+    y_width = np.shape(Y_images)[2]
+    print(np.shape(X_images))
+    print(np.shape(Y_images))
     X_train = tf.placeholder(tf.float32)
     Y_train = tf.placeholder(tf.float32)
 
@@ -98,21 +98,19 @@ def Training(X_images, Y_images, is_print_loss, learning_rate):
     conv2 = Shrinking(conv1)
     conv3 = NonLinearMapping(conv2)
     conv4 = Expanding(conv3)
-    Y_predict = Deconvolution(conv4, Y_train, size_y)
+    Y_predict = Deconvolution(conv4, Y_train, y_height, y_width)
 
     # Define loss function and optimizer
-    loss = tf.reduce_mean(tf.square(tf.subtract(Y_predict, Y_train)))
-    # loss = tf.image.ssim(Y_predict, Y_train, max_val=1.0)
-    # loss = tf.image.ssim_multiscale(Y_predict, Y_train, max_val=1.0)
-    optimizer = tf.train.GradientDescentOptimizer(learning_rate).minimize(loss)
+    # loss = tf.reduce_mean(tf.square(tf.subtract(Y_predict, Y_train)))
+    loss = tf.image.ssim(Y_predict, Y_train, max_val=1.0)
+    optimizer = tf.train.GradientDescentOptimizer(learning_rate).minimize(-loss)
 
     # run
     sess = tf.InteractiveSession()
     tf.global_variables_initializer().run()
     sess.run(optimizer, feed_dict={X_train: X_images, Y_train: Y_images})
-
-    if is_print_loss:
-        print(loss.eval(feed_dict={X_train: X_images, Y_train: Y_images}))
+    loss_value = loss.eval(feed_dict={X_train: X_images, Y_train: Y_images})
+    print(loss_value)
 
     sess.close()
 
