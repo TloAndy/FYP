@@ -1,4 +1,5 @@
 import numpy as np
+import tensorflow as tf
 from skimage.io import imread, imsave
 from skimage.transform import resize
 from skimage.color import rgb2grey
@@ -17,16 +18,31 @@ class Image:
 
 	@staticmethod
 	def Normalize(images):
-		results = []
+		return [(image - np.mean(image)) / np.std(image) for image in images]
+		# return [(image/127.5) - 1 for image in images]
+		# results = []
 
-		for image in images:
-			image_norm = image / np.linalg.norm(image)
-			# print(np.shape(image_norm))
-			image_3dims = image_norm.reshape(np.shape(image_norm)[0], np.shape(image_norm)[1], 1)
+		# for image in images:
+			# print(image)
+			# image_norm = (image - np.mean(image)) / np.std(image)
+			# image_norm = (image-min(min(x) for x in image))/(max(max(x) for x in image)-min(min(x) for x in image))
+			# print(max(max(x) for x in image_norm))
+			# print(max(np.mean(x) for x in image_norm))
+			# print(image_norm)
+			# image_3dims = image_norm.reshape(np.shape(image_norm)[0], np.shape(image_norm)[1], 1)
+			# image_3dims = image.reshape(np.shape(image)[0], np.shape(image)[1], 1)
+			# print(image_3dims)
 			# print(np.shape(image_3dims))
-			results.append(image_3dims)
+			# results.append(image_3dims)
 
-		return results
+		# images_3dims = tf.expand_dims(images, 2)
+		# images_standardized = tf.image.per_image_standardization(images_3dims)
+# 
+		# return results
+
+	@staticmethod
+	def ExpandDims(images):
+		return [np.reshape(image, (np.shape(image)[0], np.shape(image)[1], 1)) for image in images]
 
 	@staticmethod
 	def SaveGreyScaleImages(size, in_path, out_path):
@@ -40,7 +56,11 @@ class Image:
 
 	@staticmethod
 	def LoadTrainingGreyImage(size, in_path):
-		return [imread(in_path + str(x) + '.png') for x in range(1, size+1)]
+		return [(imread(in_path + str(x) + '.png') / 255).astype(int) for x in range(1, size+1)]
+
+	@staticmethod
+	def SaveOutput(output, path):
+		imsave(output, path)
 
 # Image.SaveGreyScaleImages(100, './Training/X2/', './Training/X2_grey/')
 

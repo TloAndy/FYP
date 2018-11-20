@@ -1,15 +1,16 @@
 import tensorflow as tf
 import numpy as np
-import imageIO
+from Image import Image
 from skimage.io import imsave
 
 # Hyper params
 learning_rate = 0.1
 epochs = 50
-batch_size = 4
-dataset_size = 4
+batch_size = 1
+dataset_size = 1
 large = 32
-small = 16
+small = 8
+is_grey = True
 
 # Params for each layers
 n_filters_conv1 = large
@@ -47,26 +48,24 @@ def conv2d(input, filter, stride = [1, 1, 1, 1], padding_type = 'SAME'):
 def deconv2d(input, filter, output_shape, stride = [1, 2, 2, 1], padding_type = 'SAME'):
     return tf.nn.conv2d_transpose(input, filter, output_shape=output_shape, strides=stride, padding=padding_type)
 
-# Load Raw Image
-X_train_origin = imageIO.LoadTrainingImages_LR(dataset_size)
+def Normalize_1D(images):
+    images_flatten = Images.Flatten(images)
+    return Image.Normalize(images_flatten)
 
-print(X_train_origin[0].shape)
-print(X_train_origin[1].shape)
-print(X_train_origin[2].shape)
-print(X_train_origin[3].shape)
+def Normalize_2D(images):
+    return Image.Normalize(images)
 
-Y_train_origin = imageIO.LoadTrainingImages_HR(dataset_size)
-X_train_origin = np.reshape(X_train_origin, (np.shape(X_train_origin)[0], np.shape(X_train_origin)[1], np.shape(X_train_origin)[2], 1))
-Y_train_origin = np.reshape(Y_train_origin, (np.shape(Y_train_origin)[0], np.shape(Y_train_origin)[1], np.shape(Y_train_origin)[2], 1))
+X_grey = Image.LoadTrainingGreyImage(dataset_size, './Training/X2_grey/')
+Y_grey = Image.LoadTrainingGreyImage(dataset_size, './Training/HR_grey/') 
 
-# print(X_train_origin)
-# print(X_train_origin[0].shape)
-# print(X_train_origin[1].shape)
-print(X_train_origin.shape)
+X_norm = Image.ExpandDims(Normalize_2D(X_grey))
+Y_norm = Image.ExpandDims(Normalize_2D(Y_grey))
 
-# Standardization respect to each color channel per image
-X_train_standardized, X_train_mean, X_train_std = imageIO.Standardize(X_train_origin)
-Y_train_standardized, Y_train_mean, Y_train_std = imageIO.Standardize(Y_train_origin)
+X_3dims = Image.ExpandDims(X_grey)
+Y_3dims = Image.ExpandDims(Y_grey)
+
+imsave('tmp.png', X_grey[0].astype(int))
+imsave('tmp1.png', Y_grey[0].astype(int))
 
 X_train = tf.placeholder(tf.float32)
 Y_train = tf.placeholder(tf.float32)
@@ -103,7 +102,7 @@ conv4 = tf.nn.relu(conv2d(conv3, weight_conv4) + bias_conv4)
 # 5th Layer - Deconvolution
 print('5th layer')
 weight_conv5 = weight_variable([filter_size_conv5, filter_size_conv5, n_filters_conv5, n_channels_conv5])
-bias_conv5 = bias_variable(np.array([batch_size, 1356, 2040, 1]))
+bias_conv5 = bias_variable(np.array([batch_size, 1404, 2040, 1]))
 Y_predict = tf.nn.relu(deconv2d(conv4, weight_conv5, tf.shape(Y_train)) + bias_conv5)
 
 # Define loss function
@@ -114,23 +113,17 @@ optimizer = tf.train.GradientDescentOptimizer(learning_rate).minimize(loss)
 with tf.Session() as sess:
     tf.global_variables_initializer().run()
 
-    # for i in range(epochs):
-    #     sess.run(optimizer, feed_dict={X_train: X_train_origin[:1], Y_train: Y_train_origin[:1]})
-    #     print(loss.eval(feed_dict={X_train: X_train_origin[:1], Y_train: Y_train_origin[:1]}))
-
-    # output = sess.run(Y_predict, feed_dict={X_train: X_train_origin[:1], Y_train: Y_train_origin[:1]})
-    # imsave('output.png', output)
-
     for i in range(epochs):
-        sess.run(optimizer, feed_dict={X_train: X_train_standardized[:batch_size], Y_train: Y_train_standardized[:batch_size]})
-        print(loss.eval(feed_dict={X_train: X_train_standardized[:batch_size], Y_train: Y_train_standardized[:batch_size]}))
+        sess.run(optimizer, feed_dict={X_train: X_norm, Y_train: Y_norm})
+        print(loss.eval(feed_dict={X_train: X_norm, Y_train: Y_norm}))
 
-    output = sess.run(Y_predict, feed_dict={X_train: X_train_standardized[:batch_size], Y_train: Y_train_standardized[:batch_size]})
-    # output = output_list[0]
-    output = np.reshape(output, (np.shape(output)[0], np.shape(output)[1], np.shape(output)[2]))
-    imsave('output100_10.png', output[0] * X_train_std[0] + X_train_mean[0])
-
-    # imageIO.InverseStandardize(np.asarray(output))
-    # print(output)
+    output = sess.run(Y_predict, feed_dict={X_train: X_3dims, Y_train: Y_3dims})
+    output = np.reshape(output, (np.shape(output)[1], np.shape(output)[2]))
+    # output = output * std + mean
+    print(output)
+    im = output.astype(int)
+    # print(np.shape(output))
+    # output = np.reshape(output, (np.shape(output)[1], np.shape(output)[2], np.shape(output)[3]))
+    imsave('output100_10.png', im)
 
 sess.close()
