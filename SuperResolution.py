@@ -74,43 +74,53 @@ def Expanding(conv3):
     conv4 = tf.nn.relu(conv2d(conv3, weight_conv4) + bias_conv4)
     return conv4
 
-def Deconvolution(conv4, Y_train, y_height, y_width):
+def Deconvolution(conv4, Y_train, batch_size):
     weight_conv5 = weight_variable([filter_size_conv5, filter_size_conv5, n_filters_conv5, n_channels_conv5])
-    bias_conv5 = bias_variable(np.array([1, y_height, y_width, 1]))
+    bias_conv5 = bias_variable(np.array([batch_size, 512, 512, 1]))
     Y_predict = tf.nn.relu(deconv2d(conv4, weight_conv5, tf.shape(Y_train)) + bias_conv5)
     return Y_predict
 
-def Train(X_images, Y_images, learning_rate, epochs):
+def Train(X_images, Y_images, learning_rate, epochs, batch_size):
 
-    X_train = tf.placeholder(tf.float32)
-    Y_train = tf.placeholder(tf.float32)
-    y_height = 1
-    y_width = 1
+    X_train = tf.placeholder(tf.float32, shape=(batch_size, 256, 256, 1))
+    Y_train = tf.placeholder(tf.float32, shape=(batch_size, 512, 512, 1))
 
-    conv1 = FeatureExtraction(X_train)
-    conv2 = Shrinking(conv1)
-    conv3 = NonLinearMapping(conv2)
-    conv4 = Expanding(conv3)
+    # conv1 = FeatureExtraction(X_train)
+    # conv2 = Shrinking(conv1)
+    # conv3 = NonLinearMapping(conv2)
+    # conv4 = Expanding(conv3)
     Y_predict = Deconvolution(conv4, Y_train, y_height, y_width)
 
     # Define loss function and optimizer
     # loss = tf.reduce_mean(tf.square(tf.subtract(Y_predict, Y_train)))
-    loss = tf.image.ssim(Y_predict, Y_train, max_val=1.0)
-    optimizer = tf.train.GradientDescentOptimizer(learning_rate)
-    train_step = optimizer.minimize(-loss)
+    # loss = tf.image.ssim(Y_predict, Y_train, max_val=1.0)
+    loss = tf.norm(Y_train - Y_predict, ord=1)
+    optimizer = tf.train.AdamOptimizer(learning_rate)
+    train_step = optimizer.minimize(loss)
     init = tf.global_variables_initializer()
 
     with tf.Session() as sess:
         sess.run(init)
+        start_index = 0
+        end_index = batch_size
+        total = np.shape(X_images)[0]
 
         for epoch in range(epochs):
 
-            for i in range(len(X_images)):
-                y_height = np.shape(Y_images[i])[0]
-                y_width = np.shape(Y_images[i])[1]
-                sess.run(train_step, feed_dict={X_train: [X_images[i]], Y_train: [Y_images[i]]})
-                loss_value = loss.eval(feed_dict={X_train: [X_images[i]], Y_train: [Y_images[i]]})
-                print(loss_value)
+            X_batch, Y_batch = X_images[start_index:end_index], Y_images[start_index:end_index]
+            start_index, end_index += batch_size, batch_size
+
+            if end_index > total:
+                end_index = total
+            else:
+                continue
+
+            # for i in range(len(X_images)):
+            #     y_height = np.shape(Y_images[i])[0]
+            #     y_width = np.shape(Y_images[i])[1]
+            #     sess.run(train_step, feed_dict={X_train: [X_images[i]], Y_train: [Y_images[i]]})
+            #     loss_value = loss.eval(feed_dict={X_train: [X_images[i]], Y_train: [Y_images[i]]})
+            #     print(loss_value)
 
         output = sess.run(Y_predict, feed_dict={X_train: [X_images[0]], Y_train: [Y_images[0]]})
         output = np.reshape(output.astype(int), (np.shape(output)[1], np.shape(output)[2]))
@@ -118,25 +128,6 @@ def Train(X_images, Y_images, learning_rate, epochs):
 
     sess.close()
 
-    # run
-    # sess = tf.InteractiveSession()
-    # tf.global_variables_initializer().run()
-
-    # for i in range(epochs):
-
-    #     for j in range(len(X_images)):
-
-    #         y_height = np.shape(Y_images)[1]
-    #         y_width = np.shape(Y_images)[2]
-    #         sess.run(optimizer, feed_dict={X_train: X_images, Y_train: Y_images})
-            # loss_value = loss.eval(feed_dict={X_train: X_images, Y_train: Y_images})
-            # print(loss_value)
-
-    # output = sess.run(Y_predict, feed_dict={X_train: X_images, Y_train: Y_images})
-    # output = np.reshape(output, (np.shape(output)[0], np.shape(output)[1], np.shape(output)[2]))
-    # Image.SaveOutput(output, 'output.png')
-
-    # sess.close()
 
 
 
