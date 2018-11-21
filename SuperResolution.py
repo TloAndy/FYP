@@ -100,7 +100,14 @@ def Train(X_images, Y_images, test_images, learning_rate, epochs, batch_size):
     train_step = optimizer.minimize(loss)
     init = tf.global_variables_initializer()
 
-    with tf.Session() as sess:
+    config = tf.ConfigProto()
+    # use GPU0
+    config.gpu_options.visible_device_list = '0'
+    # allocate 50% of GPU memory
+    config.gpu_options.allow_growth = True
+    config.gpu_options.per_process_gpu_memory_fraction = 0.5
+
+    with tf.Session(config=config) as sess:
         sess.run(init)
         start_index = 0
         end_index = batch_size
@@ -130,6 +137,8 @@ def Train(X_images, Y_images, test_images, learning_rate, epochs, batch_size):
                     start_index = 0
                     end_index = batch_size
                     break
+
+                iter_count += 1
 
         output = sess.run(Y_predict, feed_dict={X_train: [test_images[0]], Y_train: [test_images[0]]})
         output = np.reshape(output, (np.shape(output)[1], np.shape(output)[2]))

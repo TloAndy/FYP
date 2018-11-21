@@ -6,12 +6,12 @@ import SuperResolution
 
 # Hyper params
 learning_rate = 0.01
-epochs = 100
-batch_size = 20
-dataset_size = 20
+epochs = 1
+batch_size = 1
+dataset_size = 1
 
-X_grey = Image.LoadTrainingGreyImage(dataset_size, './Training/X2_grey/')
-Y_grey = Image.LoadTrainingGreyImage(dataset_size, './Training/HR_grey/')
+X_grey = Image.LoadTrainingGreyImage(dataset_size, '/data/ssd/public/kkwong6/Training/X2_grey/')
+Y_grey = Image.LoadTrainingGreyImage(dataset_size, '/data/ssd/public/kkwong6/Training/HR_grey/')
 
 X_norm = Image.Normalize(X_grey)
 Y_norm = Image.Normalize(Y_grey)
