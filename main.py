@@ -5,10 +5,10 @@ import SuperResolution
 # np.set_printoptions(threshold=np.nan)
 
 # Hyper params
-learning_rate = 0.1
-epochs = 1
-batch_size = 10
-dataset_size = 10
+learning_rate = 0.01
+epochs = 100
+batch_size = 20
+dataset_size = 20
 
 X_grey = Image.LoadTrainingGreyImage(dataset_size, './Training/X2_grey/')
 Y_grey = Image.LoadTrainingGreyImage(dataset_size, './Training/HR_grey/')
@@ -24,8 +24,5 @@ X_shuffle, Y_shuffle = Image.Shuffle(X_cropped, Y_cropped)
 X_final = Image.ExpandDims(X_shuffle)
 Y_final = Image.ExpandDims(Y_shuffle)
 
-print(np.shape(X_final))
-print(np.shape(Y_final))
-
-SuperResolution.Train(X_final, Y_final, learning_rate, epochs, batch_size)
+SuperResolution.Train(X_final, Y_final, Image.ExpandDims(X_norm), learning_rate, epochs, batch_size)
 

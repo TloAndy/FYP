@@ -36,6 +36,7 @@ class Image:
 		images_count = np.shape(X_images)[0]
 		shuffled_index = range(images_count)
 		shuffle(shuffled_index)
+		print(shuffled_index)
 		return [X_images[i] for i in shuffled_index], [Y_images[i] for i in shuffled_index]
 
 	@staticmethod

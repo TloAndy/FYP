@@ -80,16 +80,17 @@ def Deconvolution(conv4, Y_train, batch_size):
     Y_predict = tf.nn.relu(deconv2d(conv4, weight_conv5, tf.shape(Y_train)) + bias_conv5)
     return Y_predict
 
-def Train(X_images, Y_images, learning_rate, epochs, batch_size):
+def Train(X_images, Y_images, test_images, learning_rate, epochs, batch_size):
 
-    X_train = tf.placeholder(tf.float32, shape=(batch_size, 256, 256, 1))
-    Y_train = tf.placeholder(tf.float32, shape=(batch_size, 512, 512, 1))
+    current_batch_size = 1
+    X_train = tf.placeholder(tf.float32, shape=(None, 256, 256, 1))
+    Y_train = tf.placeholder(tf.float32, shape=(None, 512, 512, 1))
 
-    # conv1 = FeatureExtraction(X_train)
-    # conv2 = Shrinking(conv1)
-    # conv3 = NonLinearMapping(conv2)
-    # conv4 = Expanding(conv3)
-    Y_predict = Deconvolution(conv4, Y_train, y_height, y_width)
+    conv1 = FeatureExtraction(X_train)
+    conv2 = Shrinking(conv1)
+    conv3 = NonLinearMapping(conv2)
+    conv4 = Expanding(conv3)
+    Y_predict = Deconvolution(conv4, Y_train, current_batch_size)
 
     # Define loss function and optimizer
     # loss = tf.reduce_mean(tf.square(tf.subtract(Y_predict, Y_train)))
@@ -104,27 +105,36 @@ def Train(X_images, Y_images, learning_rate, epochs, batch_size):
         start_index = 0
         end_index = batch_size
         total = np.shape(X_images)[0]
+        feed_all = False
+        iter_count = 0
 
         for epoch in range(epochs):
 
-            X_batch, Y_batch = X_images[start_index:end_index], Y_images[start_index:end_index]
-            start_index, end_index += batch_size, batch_size
+            while True:
 
-            if end_index > total:
-                end_index = total
-            else:
-                continue
+                X_batch, Y_batch = X_images[start_index:end_index], Y_images[start_index:end_index]
+                # print(np.shape(X_batch), np.shape(Y_batch))
+                current_batch_size = end_index - start_index
+                sess.run(train_step, feed_dict={X_train:X_batch, Y_train:Y_batch})
+                start_index += batch_size
+                end_index += batch_size
 
-            # for i in range(len(X_images)):
-            #     y_height = np.shape(Y_images[i])[0]
-            #     y_width = np.shape(Y_images[i])[1]
-            #     sess.run(train_step, feed_dict={X_train: [X_images[i]], Y_train: [Y_images[i]]})
-            #     loss_value = loss.eval(feed_dict={X_train: [X_images[i]], Y_train: [Y_images[i]]})
-            #     print(loss_value)
+                if epoch % 5 == 0:
+                    loss_value = loss.eval(feed_dict={X_train: X_batch, Y_train: Y_batch})
+                    print('In epoch: ' + str(epoch) + ' iteration = ' + str(iter_count) + ', loss = ' + str(loss_value))
 
-        output = sess.run(Y_predict, feed_dict={X_train: [X_images[0]], Y_train: [Y_images[0]]})
-        output = np.reshape(output.astype(int), (np.shape(output)[1], np.shape(output)[2]))
-        Image.SaveOutput(output, 'output.png')
+                if end_index >= total:
+                    end_index = total
+                
+                if start_index >= total:
+                    start_index = 0
+                    end_index = batch_size
+                    break
+
+        output = sess.run(Y_predict, feed_dict={X_train: [test_images[0]], Y_train: [test_images[0]]})
+        output = np.reshape(output, (np.shape(output)[1], np.shape(output)[2]))
+        output_recovered = Image.recover(output)
+        Image.SaveOutput(output_recovered.astype(int), 'output.png')
 
     sess.close()
 
