@@ -9,6 +9,22 @@ from random import shuffle
 class Image:
 
 	@staticmethod
+	def SegmentImage(images):
+		segmentSize = 60
+		segments = []
+		for index, image in enumerate(images):
+			height, width = np.shape(image)[0], np.shape(image)[1]
+			print('image', index, ': Height(', height, ') Width(', width, ')')
+			XSegmentNum = width//segmentSize
+			YSegmentNum = height//segmentSize
+			for x in range(XSegmentNum):
+				for y in range(YSegmentNum):
+					segments.append(image[y*segmentSize:(y+1)*segmentSize, x*segmentSize:(x+1)*segmentSize])
+			print('Cropped into', XSegmentNum*YSegmentNum, 'images')
+
+		return segments
+
+	@staticmethod
 	def Flatten(images):
 		images_flatten = []
 
@@ -74,5 +90,5 @@ class Image:
 		imsave(output, path)
 
 # Image.SaveGreyScaleImages(100, './Training/X2/', './Training/X2_grey/')
-
-
+image = imread('./images/1.bmp')
+imageSegments = Image.SegmentImage([image])

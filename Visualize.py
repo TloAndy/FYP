@@ -6,7 +6,7 @@ class Visualize:
         plt.xlabel('Iterations')
         plt.ylabel('Loss')
         plt.xticks(iteration)
-        plt.plot(iteration, loss, 'r--')
+        plt.plot(iteration, loss, lw=2.5)
         plt.show()
 
 Visualize.PlotLoss([1, 2, 3, 4], [0.7, 0.4, 0.2, 0.01])
