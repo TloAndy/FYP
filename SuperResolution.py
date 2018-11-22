@@ -1,10 +1,12 @@
 import tensorflow as tf
 import numpy as np
 from Image import Image
+from skimage.io import imread, imsave
+# np.set_printoptions(threshold=np.nan)
 
 # Params for each layers
-large = 64
-small = 16
+large = 128
+small = 32
 
 n_filters_conv1 = large
 n_channels_conv1 = 1
@@ -85,20 +87,24 @@ def Train(X_images, Y_images, test_images, learning_rate, epochs, batch_size):
     current_batch_size = 1
     X_train = tf.placeholder(tf.float32, shape=(None, 256, 256, 1))
     Y_train = tf.placeholder(tf.float32, shape=(None, 512, 512, 1))
+    print(X_train)
+    print(Y_train)
 
     conv1 = FeatureExtraction(X_train)
     conv2 = Shrinking(conv1)
     conv3 = NonLinearMapping(conv2)
     conv4 = Expanding(conv3)
     Y_predict = Deconvolution(conv4, Y_train, current_batch_size)
+    print(Y_predict)
 
     # Define loss function and optimizer
     # loss = tf.reduce_mean(tf.square(tf.subtract(Y_predict, Y_train)))
-    # loss = tf.image.ssim(Y_predict, Y_train, max_val=1.0)
-    loss = tf.norm(Y_train - Y_predict, ord=1)
+    loss = tf.image.ssim(Y_predict, Y_train, max_val=1.0)
+    # loss = tf.norm(Y_train - Y_predict, ord=1)
     optimizer = tf.train.AdamOptimizer(learning_rate)
-    train_step = optimizer.minimize(loss)
+    train_step = optimizer.minimize(-loss)
     init = tf.global_variables_initializer()
+    saver = tf.train.Saver()
 
     config = tf.ConfigProto()
     # use GPU0
@@ -108,6 +114,7 @@ def Train(X_images, Y_images, test_images, learning_rate, epochs, batch_size):
     config.gpu_options.per_process_gpu_memory_fraction = 0.5
 
     with tf.Session(config=config) as sess:
+        print('hello world')
         sess.run(init)
         start_index = 0
         end_index = batch_size
@@ -140,12 +147,41 @@ def Train(X_images, Y_images, test_images, learning_rate, epochs, batch_size):
 
                 iter_count += 1
 
-        output = sess.run(Y_predict, feed_dict={X_train: [test_images[0]], Y_train: [test_images[0]]})
-        output = np.reshape(output, (np.shape(output)[1], np.shape(output)[2]))
-        output_recovered = Image.recover(output)
-        Image.SaveOutput(output_recovered.astype(int), 'output.png')
+        save_path = saver.save(sess, "./model.ckpt")
+        # output = sess.run(Y_predict, feed_dict={X_train: [test_images[0]], Y_train: [test_images[0]]})
+        # output = np.reshape(output, (np.shape(output)[1], np.shape(output)[2]))
+        # output_recovered = Image.recover(output)
+        # Image.SaveOutput(output_recovered.astype(int), 'output.png')
 
     sess.close()
+
+# assume input is 3-dims 
+def Test(input, model_path, output_path, Y):
+    # saver = tf.train.Saver()
+
+    # with tf.Graph().as_default() as graph:
+    with tf.Session() as sess:
+        saver = tf.train.import_meta_graph(model_path + 'model.ckpt.meta')
+        saver.restore(sess, model_path + 'model.ckpt')
+
+        # out_dummy = np.zeros(shape=(1, np.shape(input)[0] * 2, np.shape(input)[1] * 2, np.shape(input)[2]))
+        output = sess.run('Relu_6:0', feed_dict={'Placeholder:0': [input], 'Placeholder_1:0': [Y]})
+        output = np.reshape(output, (np.shape(output)[1], np.shape(output)[2]))
+        output = np.clip(output, -1, 1)
+        # output *= -1
+        print(output)
+        # print(np.mean((Y - output) ** 2))
+        image = ((output + 1) * 255.0 / 2.0).astype(int)
+        imsave('output.png', image)
+
+
+
+        # Image.SaveOutput(Y, output_path + 'output.png')
+
+    sess.close()
+
+
+
 
 
 
