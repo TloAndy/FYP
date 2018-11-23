@@ -5,6 +5,7 @@ from Image import Image
 import SuperResolution 
 # np.set_printoptions(threshold=np.nan)
 
+
 batch_size = 30
 dataset_size = 1
 
@@ -28,4 +29,4 @@ Y_final = Image.ExpandDims(Y_shuffle)
 
 Image.SaveOutput([Y_final[0]], './y.png')
 # print(Y_final[0])
-SuperResolution.Test(X_final[0], model_path, './', Y_final[0])
+SuperResolution.Test(X_final[0], model_path, './')

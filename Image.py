@@ -72,9 +72,9 @@ class Image:
 
 	@staticmethod
 	def SaveGreyScaleImages(size, in_path, out_path):
-		names_rgb = [str(x)[1:] + 'x2' + ".png" for x in range(10001, size+10001)]
+		names_rgb = [str(x)[1:] + 'x2' +  ".png" for x in range(10101, size+10101)]
 		images_grey = [imread(in_path + x, as_grey=True) for x in names_rgb]
-		names_grey = [out_path + str(x) + '.png' for x in range(1, size+1)]
+		names_grey = [out_path + str(x) + '.png' for x in range(101, size+101)]
 
 		for image, name in zip(images_grey, names_grey):
 			imsave(name, image)
@@ -99,6 +99,8 @@ class Image:
 
 		imsave(path, image_int)
 
+
+# Image.SaveGreyScaleImages(100, './Training/X2/', './Training/X2_grey/')
 
 
 
