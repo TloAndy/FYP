@@ -30,11 +30,11 @@ n_channels_conv5 = large
 filter_size_conv5 = 9
 
 def weight_variable(shape):
-    initial = tf.truncated_normal(shape, stddev=0.1)
+    initial = tf.truncated_normal(shape, stddev=0.1, dtype=tf.float16)
     return tf.Variable(initial)
 
 def bias_variable(shape):
-    initial = tf.constant(0.1, shape=shape)
+    initial = tf.constant(0.1, shape=shape, dtype=tf.float16)
     return tf.Variable(initial)
 
 def conv2d(input, filter, stride = [1, 1, 1, 1], padding_type = 'SAME'):
@@ -48,7 +48,7 @@ def prelu(_x, num, scope=None):
     with tf.variable_scope(name_or_scope=scope, default_name="prelu"+num):
         _alpha = tf.get_variable("prelu"+num, shape=_x.get_shape()[-1],
                                  dtype=_x.dtype, initializer=tf.constant_initializer(0.1))
-        return tf.maximum(0.0, _x) + _alpha * tf.minimum(0.0, _x)
+        return tf.maximum(np.float16(0.0), _x) + _alpha * tf.minimum(np.float16(0.0), _x)
 
 # Functions for each layer
 def FeatureExtraction(X_train):
@@ -83,26 +83,29 @@ def Expanding(conv3):
     conv4 = prelu(conv2d(conv3, weight_conv4) + bias_conv4, '6')
     return conv4
 
-def Deconvolution(conv4, Y_train, batch_size, out_h, out_w):
+def Deconvolution(conv4, batch_size, output_h, output_w):
     weight_conv5 = weight_variable([filter_size_conv5, filter_size_conv5, n_filters_conv5, n_channels_conv5])
-    bias_conv5 = bias_variable(np.array([batch_size, out_h, out_w, 1]))
-    Y_predict = prelu(deconv2d(conv4, weight_conv5, tf.shape(Y_train)) + bias_conv5, '7')
+    bias_conv5 = bias_variable(np.array([batch_size, output_h, output_w, 1]))
+    Y_predict = prelu(deconv2d(conv4, weight_conv5, tf.convert_to_tensor([batch_size, output_h, output_w, 1])) + bias_conv5, '7')
     return Y_predict
 
 def Train(X_images, Y_images, test_images, learning_rate, epochs, batch_size):
 
     current_batch_size = 1
-    X_train = tf.placeholder(tf.float32, name='X')
-    Y_train = tf.placeholder(tf.float32, name='Y')
+    input_h = np.shape(X_images)[1]
+    input_w = np.shape(X_images)[2]
     output_h = np.shape(Y_images)[1]
     output_w = np.shape(Y_images)[2]
+
+    X_train = tf.placeholder(tf.float16, shape=(None, input_h, input_w, 1), name='X')
+    Y_train = tf.placeholder(tf.float16, shape=(None, output_h, output_w, 1), name='Y')
 
     conv1 = FeatureExtraction(X_train)
     conv2 = Shrinking(conv1)
     conv3 = NonLinearMapping(conv2)
     conv4 = Expanding(conv3)
-    Y_predict = Deconvolution(conv4, Y_train, current_batch_size)
-    print(Y_predict)
+    Y_predict = Deconvolution(conv4, current_batch_size, output_h, output_w)
+    Y_predict = tf.identity(Y_predict, "Y_predict")
 
     # Define loss function and optimizer
     loss = tf.image.ssim(Y_predict, Y_train, max_val=2.0)
@@ -112,9 +115,11 @@ def Train(X_images, Y_images, test_images, learning_rate, epochs, batch_size):
     saver = tf.train.Saver()
 
     config = tf.ConfigProto()
-    config.gpu_options.allocator_type = 'BFC'
+    # use GPU0
+    config.gpu_options.visible_device_list = '1'
+    # allocate 50% of GPU memory
     config.gpu_options.allow_growth = True
-    config.gpu_options.per_process_gpu_memory_fraction = 0.990
+    config.gpu_options.per_process_gpu_memory_fraction = 0.9
 
     with tf.Session(config=config) as sess:
         print('hello world')
